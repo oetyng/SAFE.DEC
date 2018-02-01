@@ -7,10 +7,10 @@ namespace SAFE.EventSourcing.Models
     public class ReadOnlyStream
     {
         public string StreamName { get; private set; }
-        public Guid StreamId { get; private set; }
+        public long StreamId { get; private set; }
         public List<EventData> Data { get; private set; }
 
-        public ReadOnlyStream(string streamName, Guid streamId, List<EventBatch> batches)
+        public ReadOnlyStream(string streamName, long streamId, List<EventBatch> batches)
         {
             StreamName = streamName;
             StreamId = streamId;
@@ -29,7 +29,7 @@ namespace SAFE.EventSourcing.Models
             // Use the isInSequnce test done 
             // in EventBatch ctor to try 
             // if they all are in sequence.
-            new EventBatch($"{streamName}@{streamId}", StreamId, Data);
+            new EventBatch($"{streamName}@{streamId}", Guid.Empty, Data);
         }
     }
 }
