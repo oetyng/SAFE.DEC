@@ -1,5 +1,5 @@
 ﻿using SAFE.EventSourcing.Models;
-using SAFE.EventSourcing.Stream;
+using SAFE.EventSourcing;
 using SAFE.SystemUtils;
 using SAFE.SystemUtils.Events;
 using System;
@@ -9,18 +9,23 @@ using System.Threading.Tasks;
 
 namespace SAFE.CQRS
 {
+    public class StreamVersion
+    {
+        public const int Any = -999;
+        public const int NoStream = -1; // -1 means stream does not exist
+        public const int Deleted = -2;
+    }
+
     public class Repository
     {
-        readonly EventStreamCache _streamCache;
+        readonly IEventStreamHandler _streamHandler;
         readonly ConcurrentDictionary<string, Aggregate> _currentStateCache = new ConcurrentDictionary<string, Aggregate>();
 
-        public Repository(EventStreamCache streamCache)
+        public Repository(IEventStreamHandler streamHandler)
         {
-            _streamCache = streamCache;
+            _streamHandler = streamHandler;
         }
 
-        public const int AnyVersion = -999;
-        public const int NoStream = -1;
         /// <summary>
         /// Caches instances.
         /// Checks network for new events, 
@@ -31,11 +36,14 @@ namespace SAFE.CQRS
         /// <returns></returns>
         public async Task<T> GetAR<T>(string streamKey, int expectedVersion) where T : Aggregate
         {
-            var reader = _streamCache.GetStreamHandler(streamKey);
-            var streamResult = await reader.GetStreamAsync(streamKey); // todo: pass in cached state version, and only load newer versions
+            int cachedVersion = -1;
+            if (_currentStateCache.TryGetValue(streamKey, out Aggregate cached))
+                cachedVersion = cached.Version;
 
-            var anyVersion = expectedVersion == AnyVersion;
-            var expectedAny = expectedVersion > NoStream; // -1 means stream does not exist
+            var streamResult = await _streamHandler.GetStreamAsync(streamKey, cachedVersion); // todo: pass in cached state version, and only load newer versions
+
+            var anyVersion = expectedVersion == StreamVersion.Any;
+            var expectedAny = expectedVersion > StreamVersion.NoStream; // -1 means stream does not exist
 
             if (expectedAny && streamResult.Error)
                 throw new Exception(streamResult.ErrorMsg);
@@ -44,7 +52,7 @@ namespace SAFE.CQRS
 
             var stream = streamResult.Value;
 
-            if (!_currentStateCache.TryGetValue(streamKey, out Aggregate cached))
+            if (cached == null)
             {
                 var ar = Activator.CreateInstance<T>();
 
@@ -80,9 +88,7 @@ namespace SAFE.CQRS
 
         internal async Task<bool> Save(EventBatch batch)
         {
-            var writer = _streamCache.GetStreamHandler(batch.StreamKey);
-
-            var result = await writer.StoreBatchAsync(batch);
+            var result = await _streamHandler.StoreBatchAsync(batch);
 
             return result.OK; // OK will be true also on idempotent writes
         }

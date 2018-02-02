@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace SAFE.EventSourcing.Models
 {
-    public class ReadOnlyStream
+    public abstract class ReadOnlyStream
     {
         public string StreamName { get; private set; }
         public long StreamId { get; private set; }
@@ -19,7 +19,21 @@ namespace SAFE.EventSourcing.Models
                 .SelectMany(x => x.Body)
                 .OrderBy(x => x.MetaData.SequenceNumber)
                 .ToList();
+        }
+    }
 
+    public class EmptyStream : ReadOnlyStream
+    {
+        public EmptyStream(string streamName, long streamId)
+            : base(streamName, streamId, new List<EventBatch>())
+        { }
+    }
+
+    public class PopulatedStream : ReadOnlyStream
+    {
+        public PopulatedStream(string streamName, long streamId, List<EventBatch> batches)
+            : base(streamName, streamId, batches)
+        {
             if (Data.Count != Data.Select(x => x.MetaData.SequenceNumber).Distinct().Count())
                 throw new ArgumentException("Duplicate sequence numbers!");
 

@@ -6,7 +6,7 @@ namespace SAFE.EventSourcing
 {
     public interface IEventStreamHandler
     {
-        Task<Result<ReadOnlyStream>> GetStreamAsync(string streamKey);
+        Task<Result<ReadOnlyStream>> GetStreamAsync(string streamKey, int newSinceVersion);
         Task<Result<bool>> StoreBatchAsync(EventBatch batch);
     }
 }
