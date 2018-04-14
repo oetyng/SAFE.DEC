@@ -6,33 +6,31 @@ namespace SAFE.SystemUtils.Events
     /// OBSERVE: Properties cannot be of type IEnumerable
     /// they will not be deserialized if they are!
     /// </summary>
-    public abstract class Event
+    public sealed class RaisedEvent
     {
+        public RaisedEvent(Event @event)
+        {
+            Id = SequentialGuid.NewGuid();
+            TimeStamp = SystemTime.UtcNow;
+            Payload = @event.AsBytes();
+            Name = @event.GetType().Name;
+            EventClrType = @event.GetType().AssemblyQualifiedName;
+        }
+
         public Guid Id { get; private set; }
 
         public DateTime TimeStamp { get; private set; }
 
-        public Event()
-        {
-            Id = SequentialGuid.NewGuid();
-            TimeStamp = SystemTime.UtcNow;
-        }
+        public byte[] Payload { get; private set; }
 
-        protected void SetId(Guid id)
-        {
-            Id = id;
-        }
+        public string Name { get; private set; }
+
+        public string EventClrType { get; private set; }
 
         public int SequenceNumber { get; set; }
     }
 
-    // TODO: move to implementing library
-    public abstract class AccountingEvent : Event
+    public abstract class Event
     {
-        public AccountingEvent(DateTime accountingDate)
-        {
-            AccountingDate = accountingDate;
-        }
-        public DateTime AccountingDate { get; private set; }
     }
 }

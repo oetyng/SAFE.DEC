@@ -9,7 +9,7 @@ namespace SAFE.CQRS
 {
     public abstract class Aggregate
     {
-        List<Event> _uncommittedEvents = new List<Event>();
+        List<RaisedEvent> _uncommittedEvents = new List<RaisedEvent>();
         Dictionary<Type, Action<Event>> _handlers = new Dictionary<Type, Action<Event>>();
 
         protected long? _id;
@@ -38,12 +38,16 @@ namespace SAFE.CQRS
                 RaiseEvent(e, isHistoric);
         }
 
-        internal void BuildFromHistory(Event @event)
+        internal void BuildFromHistory(EventSourcing.Models.EventData @event)
         {
-            RaiseEvent(@event, true);
+            if (@event.MetaData.SequenceNumber != Version + 1)
+                throw new InvalidOperationException();
+
+            var evt = @event.GetDeserialized((b, t) => (Event)b.Parse(t));
+            RaiseEvent(evt, true);
         }
 
-        internal List<Event> GetUncommittedEvents()
+        internal List<RaisedEvent> GetUncommittedEvents()
         {
             return _uncommittedEvents.ToList();
         }
@@ -65,15 +69,11 @@ namespace SAFE.CQRS
 
             if (!isHistoric)
             {
-                #region alternative id scheme
-                //var type = @event.GetType();
-                //var bytes = @event.AsBytes();
-                //var signature = Encoding.UTF8.GetString(bytes);
-                //var eventId = EventId(signature);
-                //var eventId = @event.Id;
-                #endregion alternative id scheme
-                @event.SequenceNumber = Version;
-                _uncommittedEvents.Add(@event);
+                var raised = new RaisedEvent(@event)
+                {
+                     SequenceNumber = Version
+                };
+                _uncommittedEvents.Add(raised);
             }
         }
 
@@ -91,10 +91,5 @@ namespace SAFE.CQRS
             BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
             return t.GetMethods(flags).Concat(GetAllMethods(t.BaseType));
         }
-
-        //Guid EventId(string signature)
-        //{
-        //    return (StreamKey + Version + signature).ToDeterministicGuid();
-        //}
     }
 }

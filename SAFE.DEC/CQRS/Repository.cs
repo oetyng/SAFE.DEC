@@ -1,7 +1,5 @@
 ﻿using SAFE.EventSourcing.Models;
 using SAFE.EventSourcing;
-using SAFE.SystemUtils;
-using SAFE.SystemUtils.Events;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
@@ -28,7 +26,7 @@ namespace SAFE.CQRS
 
         /// <summary>
         /// Caches instances.
-        /// Checks network for new events, 
+        /// Checks store for new events, 
         /// and applies them to cached instance.
         /// </summary>
         /// <typeparam name="T"></typeparam>
@@ -58,10 +56,7 @@ namespace SAFE.CQRS
 
                 if (expectedAny)
                 {
-                    var events = stream.Data
-                        .Select(x => x.GetDeserialized((b, t) => (Event)b.Parse(t)));
-
-                    foreach (var e in events)
+                    foreach (var e in stream.Data)
                         ar.BuildFromHistory(e);
                 }
 
@@ -72,8 +67,7 @@ namespace SAFE.CQRS
             else
             {
                 var newEvents = stream.Data
-                    .Where(d => d.MetaData.SequenceNumber > cached.Version)
-                    .Select(x => x.GetDeserialized((b, t) => (Event)b.Parse(t)));
+                    .Where(d => d.MetaData.SequenceNumber > cached.Version);
 
                 foreach (var e in newEvents)
                     cached.BuildFromHistory(e);

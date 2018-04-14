@@ -1,5 +1,4 @@
 ﻿using SAFE.EventSourcing.Models;
-using SAFE.SystemUtils;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -54,12 +53,12 @@ namespace SAFE.CQRS
                 throw new InvalidOperationException("Already committed.");
 
             var data = events.Select(e => new EventData(
-                e.AsBytes(),
+                e.Payload,
                 _cmd.CorrelationId,
                 _cmd.Id,
-                e.GetType().AssemblyQualifiedName,
+                e.EventClrType,
                 e.Id,
-                e.GetType().Name,
+                e.Name,
                 e.SequenceNumber,
                 e.TimeStamp))
             .ToList();
