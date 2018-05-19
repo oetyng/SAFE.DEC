@@ -18,18 +18,12 @@ namespace SAFE.CQRS
         TAggregate _instance;
         Func<TCmd, TAggregate, Task<bool>> _action;
 
-        public Context(TCmd cmd, Repository repo)
+        public Context(TCmd cmd, Repository repo, Func<TCmd, TAggregate, Task<bool>> action)
         {
             //if (!HandlesCmd())
             //    throw new ArgumentException($"{nameof(TAggregate)} does not handle ...");
             _cmd = cmd;
             _repo = repo;
-        }
-
-        public void SetAction(Func<TCmd, TAggregate, Task<bool>> action)
-        {
-            if (_action != null)
-                throw new InvalidOperationException("An action is already added!");
             _action = action;
         }
 
